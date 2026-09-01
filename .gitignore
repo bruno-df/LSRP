@@ -1,0 +1,11 @@
+# Ambiente virtual local
+backend/.venv/
+
+# Artefatos gerados pelo Python
+__pycache__/
+*.py[cod]
+
+# Cache e resultados de testes
+.pytest_cache/
+.coverage
+htmlcov/
