@@ -3,9 +3,12 @@
 Sistema acadêmico para registrar pedidos de mesas e acompanhar o fluxo de
 preparo de uma lanchonete.
 
-O projeto possui:
+O projeto possui duas implementações intercambiáveis do mesmo backend e um
+único front-end:
 
-- backend REST desenvolvido com FastAPI;
+- backend REST organizado segundo o Single Responsibility Principle (SRP);
+- backend REST monolítico que viola deliberadamente o SRP para comparação
+  acadêmica;
 - front-end de página única desenvolvido com React, TypeScript e Vite;
 - cardápio fornecido exclusivamente pela API;
 - criação, listagem e consulta de pedidos;
@@ -19,6 +22,12 @@ LSRP/
 ├── backend/
 │   ├── app/
 │   ├── tests/
+│   ├── requirements.txt
+│   └── pytest.ini
+├── backend_sem_srp/
+│   ├── tests/
+│   │   └── test_api.py
+│   ├── main.py
 │   ├── README.md
 │   ├── requirements.txt
 │   └── pytest.ini
@@ -27,12 +36,16 @@ LSRP/
 │   │   ├── api/
 │   │   ├── components/
 │   │   └── types/
-│   ├── README.md
 │   ├── package.json
 │   └── vite.config.ts
 ├── relatorio_implementacao_backend_srp.md
+├── relatorio_implementacao_backend_sem_srp.md
 └── relatorio_implementacao_frontend_lanchonete.md
 ```
+
+As pastas `backend/` e `backend_sem_srp/` expõem o mesmo contrato HTTP. A
+diferença é interna: a primeira separa responsabilidades; a segunda concentra
+contratos, cardápio, persistência, regras e rotas em `main.py`.
 
 ## Tecnologias
 
@@ -73,24 +86,54 @@ Caso utilize NVM, a versão validada pode ser ativada com:
 nvm use 24
 ```
 
-O backend e o front-end precisam permanecer ativos ao mesmo tempo. Utilize dois
-terminais separados para executar o sistema.
+O front-end e **um** dos backends precisam permanecer ativos ao mesmo tempo.
+Utilize dois terminais. Não inicie os dois backends simultaneamente, pois ambos
+usam a porta `8000`.
 
 ## Instalação e execução
 
-### 1. Preparar e iniciar o backend
+### 1. Preparar o ambiente Python
 
-No primeiro terminal, partindo da raiz do projeto:
+As duas versões possuem as mesmas dependências. Partindo da raiz do projeto,
+um único ambiente virtual pode ser usado para ambas:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r backend/requirements.txt
+```
+
+Em um novo terminal, reative o ambiente antes de iniciar ou testar um backend:
+
+```bash
+cd /caminho/para/LSRP
+source .venv/bin/activate
+```
+
+### 2. Iniciar um backend na porta 8000
+
+Escolha **somente uma** das opções abaixo.
+
+#### Opção A — backend com SRP
+
+Esta é a versão arquiteturalmente recomendada do exemplo:
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-O backend ficará disponível em:
+#### Opção B — backend sem SRP
+
+Esta é a versão monolítica criada exclusivamente como contraexemplo acadêmico:
+
+```bash
+cd backend_sem_srp
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Independentemente da versão escolhida, o backend ficará disponível em:
 
 - API: `http://127.0.0.1:8000`;
 - documentação Swagger: `http://127.0.0.1:8000/docs`;
@@ -104,14 +147,14 @@ http://127.0.0.1:8000/api/cardapio
 
 A resposta deve conter os seis itens do cardápio.
 
-### 2. Preparar e iniciar o front-end
+### 3. Preparar e iniciar o front-end
 
 No segundo terminal, partindo da raiz do projeto:
 
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
 O Vite exibirá o endereço local da interface, normalmente:
@@ -122,6 +165,32 @@ http://127.0.0.1:5173
 
 Abra esse endereço no navegador. O backend precisa continuar ativo no primeiro
 terminal.
+
+### 4. Alternar entre as duas versões
+
+O front-end não precisa ser reiniciado nem modificado:
+
+1. no terminal do backend, pressione `Ctrl+C`;
+2. entre na pasta da outra implementação;
+3. execute o comando Uvicorn correspondente na porta `8000`;
+4. recarregue `http://127.0.0.1:5173` no navegador.
+
+Como o armazenamento é apenas em memória, trocar ou reiniciar o backend apaga
+os pedidos e reinicia os IDs em `1`.
+
+### 5. Encerrar os servidores
+
+Pressione `Ctrl+C` em cada terminal. Se o Uvicorn informar que a porta `8000`
+já está em uso, localize o outro terminal do backend e encerre o processo antes
+de tentar novamente.
+
+### Resumo dos processos e endereços
+
+| Processo | Comando | Endereço |
+| --- | --- | --- |
+| Backend com SRP | `uvicorn app.main:app --reload --host 127.0.0.1 --port 8000` dentro de `backend/` | `http://127.0.0.1:8000` |
+| Backend sem SRP | `uvicorn main:app --reload --host 127.0.0.1 --port 8000` dentro de `backend_sem_srp/` | `http://127.0.0.1:8000` |
+| Front-end | `npm run dev -- --host 127.0.0.1 --port 5173` dentro de `frontend/` | `http://127.0.0.1:5173` |
 
 ## Integração entre front-end e backend
 
@@ -201,13 +270,22 @@ As ações apresentadas no front-end são:
 
 ## Validação do projeto
 
-### Testar o backend
+### Testar o backend com SRP
 
-Com o ambiente virtual do backend ativado:
+Com o ambiente virtual Python ativado:
 
 ```bash
 cd backend
-python -m pytest
+python -m pytest -q
+```
+
+### Testar o backend sem SRP
+
+Partindo da raiz e com o mesmo ambiente virtual ativado:
+
+```bash
+cd backend_sem_srp
+python -m pytest -q
 ```
 
 ### Verificar o front-end
@@ -221,7 +299,7 @@ npm run build
 
 ### Roteiro manual recomendado
 
-Com backend e front-end ativos:
+Com uma das versões do backend e o front-end ativos:
 
 1. confirme que os seis itens do cardápio são apresentados;
 2. tente criar um pedido sem mesa e sem itens e verifique as validações;
@@ -242,7 +320,7 @@ Com backend e front-end ativos:
 Na aba Network das ferramentas do navegador, as requisições devem usar
 `/api/...` e não devem apresentar erros de CORS.
 
-## Organização do backend
+## Organização do backend com SRP
 
 O backend aplica o Single Responsibility Principle, separando as
 responsabilidades entre os módulos:
@@ -256,6 +334,31 @@ responsabilidades entre os módulos:
 | `service.py` | Casos de uso e regras dos pedidos. |
 | `routes.py` | Rotas HTTP e tradução de erros. |
 | `main.py` | Criação da aplicação e composição das dependências. |
+
+## Organização do backend sem SRP
+
+O contraexemplo concentra deliberadamente em `backend_sem_srp/main.py`:
+
+- enum e schemas Pydantic;
+- cardápio e preços;
+- armazenamento em memória e geração de IDs;
+- validações, cálculo monetário e regras de negócio;
+- transições de status e erros HTTP;
+- cinco endpoints e criação da aplicação FastAPI.
+
+O sistema permanece funcional, mas o mesmo módulo passa a ter várias razões
+independentes para mudar. Essa concentração caracteriza a violação didática do
+SRP; o simples fato de existir um único arquivo, isoladamente, não seria
+suficiente para caracterizá-la.
+
+| Necessidade de mudança | Backend com SRP | Backend sem SRP |
+| --- | --- | --- |
+| Alterar alimento ou preço | `cardapio.py` | `main.py` |
+| Trocar armazenamento | `repository.py` | `main.py` |
+| Alterar regra de pedido | `service.py` | `main.py` |
+| Alterar contrato HTTP | `schemas.py` | `main.py` |
+| Alterar endpoint | `routes.py` | `main.py` |
+| Alterar composição | `main.py` da versão com SRP | `main.py` monolítico |
 
 ## Organização do front-end
 
@@ -286,6 +389,10 @@ responsabilidades entre os módulos:
 
 - Os pedidos são armazenados somente em memória.
 - Reiniciar o backend apaga os pedidos e reinicia a sequência de IDs.
+- Somente um backend deve ocupar a porta `8000` por vez.
+- As duas versões usam o mesmo front-end e expõem os mesmos cinco endpoints.
+- `backend_sem_srp/` é um contraexemplo acadêmico, não uma recomendação de
+  arquitetura.
 - O cardápio é fornecido pelo backend e não pode ser alterado pelo front-end.
 - O total retornado pelo backend é o valor definitivo do pedido.
 - O front-end não envia nomes, preços, total, status inicial, ID ou data durante
@@ -295,7 +402,7 @@ responsabilidades entre os módulos:
 
 ## Documentação complementar
 
-- [README do backend](backend/README.md)
-- [README do front-end](frontend/README.md)
-- [Relatório de implementação do backend](relatorio_implementacao_backend_srp.md)
+- [README do backend sem SRP](backend_sem_srp/README.md)
+- [Relatório de implementação do backend com SRP](relatorio_implementacao_backend_srp.md)
+- [Relatório de implementação do backend sem SRP](relatorio_implementacao_backend_sem_srp.md)
 - [Relatório de implementação do front-end](relatorio_implementacao_frontend_lanchonete.md)
