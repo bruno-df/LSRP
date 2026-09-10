@@ -9,6 +9,10 @@ interface ListaPedidosProps {
   onAtualizarStatus: AtualizarStatusHandler
 }
 
+/**
+ * Resolve os quatro estados da área de pedidos: carregando, erro, vazio e lista.
+ * Cada cartão consulta o Set para saber se seu próprio pedido está atualizando.
+ */
 export function ListaPedidos({
   pedidos,
   carregando,

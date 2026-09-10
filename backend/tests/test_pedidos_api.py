@@ -1,3 +1,5 @@
+"""Testes de integração do contrato HTTP da versão organizada com SRP."""
+
 from datetime import datetime, timedelta
 from collections.abc import AsyncIterator
 
@@ -12,11 +14,15 @@ pytestmark = pytest.mark.anyio
 
 @pytest.fixture
 def anyio_backend() -> str:
+    """Seleciona asyncio como executor dos testes assíncronos."""
+
     return "asyncio"
 
 
 @pytest.fixture
 async def cliente() -> AsyncIterator[httpx.AsyncClient]:
+    """Cria uma aplicação e um cliente HTTP isolados para cada teste."""
+
     transporte = httpx.ASGITransport(app=criar_app())
     async with httpx.AsyncClient(
         transport=transporte,

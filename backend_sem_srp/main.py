@@ -19,6 +19,7 @@ InteiroPositivo = Annotated[int, Field(strict=True, gt=0)]
 CENTAVOS = Decimal("0.01")
 
 
+# Estados que delimitam o ciclo de vida permitido para um pedido.
 class StatusPedido(str, Enum):
     RECEBIDO = "RECEBIDO"
     EM_PREPARO = "EM_PREPARO"
@@ -28,12 +29,14 @@ class StatusPedido(str, Enum):
 
 
 # Responsabilidade de contratos HTTP, mantida no mesmo módulo das rotas.
+# Contrato de saída de cada alimento do cardápio.
 class ItemCardapioResposta(BaseModel):
     id: int
     nome: str
     preco: str
 
 
+# Dados mínimos que o cliente pode fornecer para um item.
 class ItemPedidoSolicitado(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -41,6 +44,7 @@ class ItemPedidoSolicitado(BaseModel):
     quantidade: InteiroPositivo
 
 
+# Corpo estrito aceito na criação de pedidos.
 class PedidoCriacao(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -48,12 +52,14 @@ class PedidoCriacao(BaseModel):
     itens: list[ItemPedidoSolicitado] = Field(min_length=1)
 
 
+# Corpo estrito aceito para avançar ou cancelar um pedido.
 class AtualizacaoStatus(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     status: StatusPedido
 
 
+# Item enriquecido com nome e preço oficiais para a resposta.
 class ItemPedidoResposta(BaseModel):
     item_cardapio_id: int
     nome: str
@@ -61,6 +67,7 @@ class ItemPedidoResposta(BaseModel):
     preco_unitario: str
 
 
+# Representação completa de um pedido exposta pela API.
 class PedidoResposta(BaseModel):
     id: int
     numero_mesa: int
@@ -71,10 +78,13 @@ class PedidoResposta(BaseModel):
 
     @field_serializer("criado_em", when_used="json")
     def serializar_criado_em(self, valor: datetime) -> str:
+        """Normaliza a data em UTC e usa o sufixo ISO 8601 ``Z``."""
+
         return valor.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-# Responsabilidade de cardápio e preços concentrada neste arquivo.
+# Responsabilidade de cardápio e preços concentrada neste arquivo. O ``dict``
+# usa o ID como chave para localizar um alimento diretamente durante a criação.
 _cardapio = {
     1: {"id": 1, "nome": "Hambúrguer", "preco": Decimal("20.00")},
     2: {"id": 2, "nome": "X-Salada", "preco": Decimal("23.00")},
@@ -85,8 +95,12 @@ _cardapio = {
 }
 
 # Responsabilidade de persistência e geração de IDs também fica neste módulo.
+# O ``dict`` associa cada ID ao pedido completo. Ele existe apenas na memória do
+# processo: fechar ou reiniciar o Uvicorn elimina seus dados e reinicia os IDs.
 _pedidos: dict[int, PedidoResposta] = {}
 _proximo_id = 1
+# O Lock protege o dicionário e o contador se requisições concorrentes tentarem
+# criar ou atualizar pedidos ao mesmo tempo.
 _estado_lock = Lock()
 
 # Responsabilidade de regras de negócio misturada ao restante da aplicação.
@@ -109,6 +123,7 @@ app = FastAPI(title="Pedidos da Lanchonete — Contraexemplo sem SRP")
 
 @app.get("/api/cardapio", response_model=list[ItemCardapioResposta])
 async def listar_cardapio() -> list[ItemCardapioResposta]:
+    # Retorna os seis itens convertendo Decimal em string monetária.
     # A rota acessa e serializa diretamente o cardápio local.
     return [
         ItemCardapioResposta(
@@ -126,6 +141,8 @@ async def listar_cardapio() -> list[ItemCardapioResposta]:
     status_code=status.HTTP_201_CREATED,
 )
 async def criar_pedido(dados: PedidoCriacao) -> PedidoResposta:
+    # Esta rota valida, calcula, gera o ID e armazena o pedido, concentrando
+    # tarefas separadas na versão com SRP. O ID só é consumido após a validação.
     global _proximo_id
 
     # Validação de negócio, composição dos itens e cálculo vivem na própria rota.
@@ -180,6 +197,7 @@ async def criar_pedido(dados: PedidoCriacao) -> PedidoResposta:
 
 @app.get("/api/pedidos", response_model=list[PedidoResposta])
 async def listar_pedidos() -> list[PedidoResposta]:
+    # Lê o armazenamento em memória e devolve pedidos por ID crescente.
     # A rota consulta diretamente o dicionário que funciona como persistência.
     with _estado_lock:
         return [_pedidos[pedido_id] for pedido_id in sorted(_pedidos)]
@@ -187,6 +205,7 @@ async def listar_pedidos() -> list[PedidoResposta]:
 
 @app.get("/api/pedidos/{pedido_id}", response_model=PedidoResposta)
 async def buscar_pedido(pedido_id: int) -> PedidoResposta:
+    # Busca diretamente no dicionário ou responde HTTP 404.
     with _estado_lock:
         pedido = _pedidos.get(pedido_id)
     if pedido is None:
@@ -205,6 +224,7 @@ async def atualizar_status(
     pedido_id: int,
     dados: AtualizacaoStatus,
 ) -> PedidoResposta:
+    # Aplica idempotência e a tabela de transições ao pedido armazenado.
     # Busca, regra de transição, persistência e erro HTTP estão na mesma rota.
     with _estado_lock:
         pedido = _pedidos.get(pedido_id)

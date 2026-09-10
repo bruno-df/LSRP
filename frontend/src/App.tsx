@@ -30,12 +30,17 @@ const formatadorMoeda = new Intl.NumberFormat('pt-BR', {
   currency: 'BRL',
 })
 
+/** Transforma qualquer falha desconhecida em mensagem segura para a interface. */
 function mensagemDoErro(erro: unknown): string {
   return erro instanceof Error
     ? erro.message
     : 'Não foi possível concluir a operação.'
 }
 
+/**
+ * Substitui um pedido já listado ou inclui um novo mantendo a ordem por ID.
+ * A atualização imutável permite que o React detecte a mudança de estado.
+ */
 function substituirPedido(lista: Pedido[], pedidoAtualizado: Pedido): Pedido[] {
   const pedidoExiste = lista.some((pedido) => pedido.id === pedidoAtualizado.id)
 
@@ -48,6 +53,7 @@ function substituirPedido(lista: Pedido[], pedidoAtualizado: Pedido): Pedido[] {
   )
 }
 
+/** Componente raiz que coordena carregamento, formulários e estado compartilhado. */
 function App() {
   const [cardapio, setCardapio] = useState<ItemCardapio[]>([])
   const [pedidos, setPedidos] = useState<Pedido[]>([])
@@ -56,6 +62,8 @@ function App() {
   const [carregandoPedidos, setCarregandoPedidos] = useState(true)
   const [criandoPedido, setCriandoPedido] = useState(false)
   const [consultandoPedido, setConsultandoPedido] = useState(false)
+  // O Set armazena IDs únicos de atualizações em andamento. useRef preserva o
+  // mesmo Set entre renderizações e bloqueia cliques duplicados imediatamente.
   const atualizacoesAtivas = useRef(new Set<number>())
   const [pedidosEmAtualizacao, setPedidosEmAtualizacao] = useState<
     ReadonlySet<number>
@@ -66,10 +74,13 @@ function App() {
   const [erroPedidos, setErroPedidos] = useState<string | null>(null)
   const [mensagem, setMensagem] = useState<MensagemInterface | null>(null)
 
+  // O efeito de montagem carrega cardápio e pedidos em paralelo. O retorno
+  // cancela fetches e impede setState se o componente já tiver sido desmontado.
   useEffect(() => {
     let telaAtiva = true
     const controlador = new AbortController()
 
+    /** Agrupa possíveis falhas das duas cargas iniciais sem repetir mensagens. */
     function registrarErroInicial(texto: string) {
       setMensagem((atual) => {
         const textos = new Set(
@@ -79,6 +90,7 @@ function App() {
       })
     }
 
+    /** Carrega o cardápio de forma independente da lista de pedidos. */
     async function carregarCardapio() {
       try {
         const itens = await listarCardapio(controlador.signal)
@@ -95,6 +107,7 @@ function App() {
       }
     }
 
+    /** Carrega os pedidos e mantém estado de erro próprio para essa região. */
     async function carregarListaPedidos() {
       try {
         const pedidosCarregados = await listarPedidos(controlador.signal)
@@ -120,6 +133,7 @@ function App() {
     }
   }, [])
 
+  /** Cria um pedido, sincroniza a lista e informa sucesso ou falha ao formulário. */
   async function criarNovoPedido(dados: CriacaoPedido): Promise<boolean> {
     setCriandoPedido(true)
     setMensagem(null)
@@ -141,6 +155,7 @@ function App() {
     }
   }
 
+  /** Faz consulta real por ID e mantém o resultado separado da listagem geral. */
   async function consultarPedidoPorId(pedidoId: number) {
     setConsultandoPedido(true)
     setPedidoConsultado(null)
@@ -164,6 +179,10 @@ function App() {
     }
   }
 
+  /**
+   * Atualiza um pedido sem permitir requisições simultâneas para o mesmo ID.
+   * Se o PATCH falhar, recarrega a lista para que a tela reflita o servidor.
+   */
   async function atualizarStatusDoPedido(
     pedidoId: number,
     status: StatusPedido,

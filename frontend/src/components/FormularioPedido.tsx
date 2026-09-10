@@ -15,6 +15,10 @@ const formatadorMoeda = new Intl.NumberFormat('pt-BR', {
   currency: 'BRL',
 })
 
+/**
+ * Formulário controlado que transforma as quantidades do cardápio no contrato
+ * mínimo de criação aceito pelo backend.
+ */
 function FormularioPedido({
   cardapio,
   carregandoCardapio,
@@ -23,10 +27,14 @@ function FormularioPedido({
   onCriarPedido,
 }: FormularioPedidoProps) {
   const [numeroMesa, setNumeroMesa] = useState('')
+  // O Record funciona como um dicionário no navegador: itemId -> quantidade.
+  // Itens ainda não editados usam zero como padrão e não ocupam uma entrada.
   const [quantidades, setQuantidades] = useState<Record<number, number>>({})
   const [erroValidacao, setErroValidacao] = useState<string | null>(null)
   const [aguardandoCriacao, setAguardandoCriacao] = useState(false)
 
+  // useMemo recalcula apenas quando cardápio ou quantidades mudam, evitando
+  // reconstruir o corpo do pedido em renderizações não relacionadas.
   const itensSelecionados = useMemo(
     () =>
       cardapio
@@ -38,6 +46,7 @@ function FormularioPedido({
     [cardapio, quantidades],
   )
 
+  // Este total é apenas uma prévia visual. O total definitivo sempre vem da API.
   const totalEstimado = useMemo(
     () =>
       cardapio.reduce(
@@ -51,6 +60,7 @@ function FormularioPedido({
   const enviando = criandoPedido || aguardandoCriacao
   const cardapioIndisponivel = carregandoCardapio || cardapio.length === 0
 
+  /** Aceita somente quantidades inteiras não negativas no estado do formulário. */
   function alterarQuantidade(itemId: number, valor: string) {
     const quantidade = valor === '' ? 0 : Number(valor)
 
@@ -62,6 +72,7 @@ function FormularioPedido({
     setErroValidacao(null)
   }
 
+  /** Valida a tela, monta o contrato da API e aguarda a criação do pedido. */
   async function enviarPedido(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
 

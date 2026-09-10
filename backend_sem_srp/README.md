@@ -36,8 +36,9 @@ cd backend_sem_srp
 uvicorn main:app --reload --port 8000
 ```
 
-O front-end permanece inalterado e continua usando `/api` por meio do proxy do
-Vite. Basta mantê-lo em execução e recarregar a página após trocar o backend.
+O front-end permanece funcionalmente inalterado e continua usando `/api` por
+meio do proxy do Vite. Basta mantê-lo em execução e recarregar a página após
+trocar o backend.
 
 ## Testes
 

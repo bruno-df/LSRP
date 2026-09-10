@@ -12,7 +12,7 @@ corretamente e, mesmo assim, possuir uma estrutura com alto acoplamento e
 maior dificuldade de manutenção.
 
 Nenhuma funcionalidade de front-end foi implementada nessa etapa. O front-end
-original continua sendo usado sem alteração e escolhe indiretamente o backend
+original continua sendo usado sem alteração funcional e escolhe indiretamente o backend
 por meio do processo que estiver ocupando a porta `8000`.
 
 ## 2. Arquivos implementados
@@ -42,8 +42,10 @@ As seguintes regras de isolamento foram seguidas:
 - nenhuma funcionalidade fora do escopo foi adicionada;
 - não foram criados commits nem removidos arquivos alheios à tarefa.
 
-A auditoria final com `git diff -- backend frontend` não encontrou alterações
-rastreadas nessas duas pastas.
+Na implementação original do contraexemplo, a auditoria com
+`git diff -- backend frontend` não encontrou alterações nessas pastas. Em uma
+etapa documental posterior, foram acrescentados somente comentários e
+docstrings explicativos ao código existente, sem alterar seu comportamento.
 
 ## 4. Contrato HTTP preservado
 
@@ -232,7 +234,7 @@ O backend sem SRP foi iniciado na porta `8000` e o Vite original na porta
 - carregamento dos seis itens do cardápio;
 - criação e consulta de um pedido;
 - fluxo `RECEBIDO -> EM_PREPARO -> PRONTO -> ENTREGUE`;
-- ausência de necessidade de modificar o proxy ou o código-fonte do front-end.
+- ausência de necessidade de modificar o comportamento ou o proxy do front-end.
 
 Também foram executados com sucesso:
 

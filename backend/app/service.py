@@ -11,17 +11,29 @@ from .repository import RepositorioPedidosMemoria
 
 
 class ItemCardapioNaoEncontrado(ValueError):
+    """Indica que a criação referenciou um item que não existe."""
+
     def __init__(self) -> None:
+        """Cria o erro com a mensagem pública definida pelo contrato."""
+
         super().__init__("Item do cardápio não encontrado.")
 
 
 class PedidoNaoEncontrado(LookupError):
+    """Indica que não há pedido armazenado para o ID solicitado."""
+
     def __init__(self) -> None:
+        """Cria o erro com a mensagem pública definida pelo contrato."""
+
         super().__init__("Pedido não encontrado.")
 
 
 class TransicaoStatusInvalida(ValueError):
+    """Indica tentativa de pular ou reverter uma etapa do pedido."""
+
     def __init__(self) -> None:
+        """Cria o erro com a mensagem pública definida pelo contrato."""
+
         super().__init__("Transição de status não permitida.")
 
 
@@ -40,11 +52,19 @@ _CENTAVOS = Decimal("0.01")
 
 
 class ServicoPedidos:
+    """Centraliza os casos de uso e as regras de negócio dos pedidos."""
+
     def __init__(
         self,
         repositorio: RepositorioPedidosMemoria,
         cardapio: Cardapio,
     ) -> None:
+        """Recebe persistência e cardápio sem criá-los internamente.
+
+        Essa injeção mantém o serviço focado em negócio e permite trocar suas
+        dependências sem alterar as regras aqui implementadas.
+        """
+
         self._repositorio = repositorio
         self._cardapio = cardapio
 
@@ -53,6 +73,12 @@ class ServicoPedidos:
         numero_mesa: int,
         itens: Sequence[tuple[int, int]],
     ) -> Pedido:
+        """Valida, calcula, monta e persiste um novo pedido.
+
+        Os dados comerciais vêm do cardápio, não da requisição, impedindo que o
+        cliente escolha nomes ou preços diferentes dos oficiais.
+        """
+
         if numero_mesa <= 0:
             raise ValueError("O número da mesa deve ser positivo.")
         if not itens:
@@ -105,9 +131,13 @@ class ServicoPedidos:
         return self._repositorio.salvar(pedido)
 
     def listar_pedidos(self) -> list[Pedido]:
+        """Solicita ao repositório a lista ordenada de pedidos."""
+
         return self._repositorio.listar()
 
     def buscar_pedido(self, pedido_id: int) -> Pedido:
+        """Busca um pedido e transforma ausência em erro de negócio."""
+
         pedido = self._repositorio.buscar_por_id(pedido_id)
         if pedido is None:
             raise PedidoNaoEncontrado()
@@ -118,6 +148,8 @@ class ServicoPedidos:
         pedido_id: int,
         novo_status: StatusPedido,
     ) -> Pedido:
+        """Mantém o status atual ou aplica somente uma transição permitida."""
+
         pedido = self.buscar_pedido(pedido_id)
 
         if novo_status == pedido.status:

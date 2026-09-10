@@ -1,3 +1,5 @@
+"""Testes unitários das regras de negócio, sem passar pela camada HTTP."""
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -31,6 +33,8 @@ _TRANSICOES_PERMITIDAS = {
 
 @pytest.fixture
 def servico() -> ServicoPedidos:
+    """Entrega a cada teste um serviço com cardápio e memória vazios."""
+
     return ServicoPedidos(
         repositorio=RepositorioPedidosMemoria(),
         cardapio=Cardapio(),
@@ -41,6 +45,8 @@ def _criar_pedido_no_status(
     servico: ServicoPedidos,
     status: StatusPedido,
 ) -> Pedido:
+    """Cria um pedido e percorre o caminho válido até o estado desejado."""
+
     pedido = servico.criar_pedido(numero_mesa=1, itens=[(1, 1)])
     for proximo_status in _CAMINHOS_PARA_STATUS[status]:
         pedido = servico.atualizar_status(pedido.id, proximo_status)

@@ -40,7 +40,8 @@ LSRP/
 │   └── vite.config.ts
 ├── relatorio_implementacao_backend_srp.md
 ├── relatorio_implementacao_backend_sem_srp.md
-└── relatorio_implementacao_frontend_lanchonete.md
+├── relatorio_implementacao_frontend_lanchonete.md
+└── guia_completo_projeto.md
 ```
 
 As pastas `backend/` e `backend_sem_srp/` expõem o mesmo contrato HTTP. A
@@ -402,6 +403,7 @@ suficiente para caracterizá-la.
 
 ## Documentação complementar
 
+- [Guia completo e comentado do projeto](guia_completo_projeto.md)
 - [README do backend sem SRP](backend_sem_srp/README.md)
 - [Relatório de implementação do backend com SRP](relatorio_implementacao_backend_srp.md)
 - [Relatório de implementação do backend sem SRP](relatorio_implementacao_backend_sem_srp.md)

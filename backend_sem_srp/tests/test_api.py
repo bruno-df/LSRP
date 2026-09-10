@@ -1,3 +1,5 @@
+"""Testes isolados do contrato HTTP do contraexemplo monolítico."""
+
 from collections.abc import AsyncIterator
 from datetime import datetime, timedelta
 
@@ -12,11 +14,15 @@ pytestmark = pytest.mark.anyio
 
 @pytest.fixture
 def anyio_backend() -> str:
+    """Seleciona asyncio como executor dos testes assíncronos."""
+
     return "asyncio"
 
 
 @pytest.fixture(autouse=True)
 def reiniciar_estado() -> None:
+    """Limpa memória e contador automaticamente antes de cada teste."""
+
     with main._estado_lock:
         main._pedidos.clear()
         main._proximo_id = 1
@@ -24,6 +30,8 @@ def reiniciar_estado() -> None:
 
 @pytest.fixture
 async def cliente() -> AsyncIterator[httpx.AsyncClient]:
+    """Fornece um cliente HTTP ligado diretamente à aplicação ASGI."""
+
     transporte = httpx.ASGITransport(app=main.app)
     async with httpx.AsyncClient(
         transport=transporte,
@@ -39,6 +47,8 @@ async def criar_pedido(
     item_cardapio_id: int = 1,
     quantidade: int = 1,
 ) -> httpx.Response:
+    """Reduz repetição nos testes que precisam criar um pedido simples."""
+
     return await cliente.post(
         "/api/pedidos",
         json={

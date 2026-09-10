@@ -18,10 +18,13 @@ from .service import (
 
 
 def criar_router(cardapio: Cardapio, servico: ServicoPedidos) -> APIRouter:
+    """Cria as rotas HTTP conectadas às dependências recebidas."""
+
     router = APIRouter(prefix="/api")
 
     @router.get("/cardapio", response_model=list[ItemCardapioResposta])
     async def listar_cardapio() -> list[ItemCardapioResposta]:
+        # Lista o catálogo convertendo domínio em objetos de resposta.
         return [
             ItemCardapioResposta.de_dominio(item) for item in cardapio.listar()
         ]
@@ -32,6 +35,7 @@ def criar_router(cardapio: Cardapio, servico: ServicoPedidos) -> APIRouter:
         status_code=status.HTTP_201_CREATED,
     )
     async def criar_pedido(dados: PedidoCriacao) -> PedidoResposta:
+        # Encaminha a criação ao serviço e converte erro de item em HTTP 400.
         try:
             pedido = servico.criar_pedido(
                 numero_mesa=dados.numero_mesa,
@@ -49,6 +53,7 @@ def criar_router(cardapio: Cardapio, servico: ServicoPedidos) -> APIRouter:
 
     @router.get("/pedidos", response_model=list[PedidoResposta])
     async def listar_pedidos() -> list[PedidoResposta]:
+        # Lista todos os pedidos usando o formato público da API.
         return [
             PedidoResposta.de_dominio(pedido)
             for pedido in servico.listar_pedidos()
@@ -56,6 +61,7 @@ def criar_router(cardapio: Cardapio, servico: ServicoPedidos) -> APIRouter:
 
     @router.get("/pedidos/{pedido_id}", response_model=PedidoResposta)
     async def buscar_pedido(pedido_id: int) -> PedidoResposta:
+        # Consulta um pedido e devolve HTTP 404 quando ele não existe.
         try:
             pedido = servico.buscar_pedido(pedido_id)
         except PedidoNaoEncontrado as erro:
@@ -73,6 +79,7 @@ def criar_router(cardapio: Cardapio, servico: ServicoPedidos) -> APIRouter:
         pedido_id: int,
         dados: AtualizacaoStatus,
     ) -> PedidoResposta:
+        # Atualiza o status e traduz falhas de negócio para erros HTTP.
         try:
             pedido = servico.atualizar_status(pedido_id, dados.status)
         except PedidoNaoEncontrado as erro:

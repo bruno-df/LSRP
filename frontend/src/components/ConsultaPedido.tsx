@@ -5,6 +5,7 @@ interface ConsultaPedidoProps {
   onConsultarPedido: (pedidoId: number) => void
 }
 
+/** Formulário compacto que valida o ID antes de solicitar uma consulta real. */
 function ConsultaPedido({
   consultandoPedido,
   onConsultarPedido,
@@ -12,6 +13,7 @@ function ConsultaPedido({
   const [pedidoId, setPedidoId] = useState('')
   const [erroValidacao, setErroValidacao] = useState<string | null>(null)
 
+  /** Impede recarregamento e encaminha somente um ID inteiro positivo. */
   function consultarPedido(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
 

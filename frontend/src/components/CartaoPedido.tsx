@@ -2,6 +2,7 @@ import { useId } from 'react'
 
 import type { Pedido, StatusPedido } from '../types/api'
 
+/** Assinatura compartilhada pelos componentes que podem alterar um pedido. */
 export type AtualizarStatusHandler = (
   pedidoId: number,
   status: StatusPedido,
@@ -19,6 +20,8 @@ interface AcaoStatus {
   variante: 'primary' | 'danger'
 }
 
+// Cada status funciona como chave de um mapa de ações. Isso evita condicionais
+// espalhadas pelo JSX e deixa explícito que estados finais não possuem botões.
 const ACOES_POR_STATUS: Record<StatusPedido, readonly AcaoStatus[]> = {
   RECEBIDO: [
     {
@@ -81,6 +84,7 @@ const formatadorData = new Intl.DateTimeFormat('pt-BR', {
   timeStyle: 'short',
 })
 
+/** Formata a string decimal da API como moeda brasileira para apresentação. */
 function formatarMoeda(valor: string): string {
   const valorNumerico = Number(valor)
 
@@ -89,12 +93,17 @@ function formatarMoeda(valor: string): string {
     : valor
 }
 
+/** Mostra a data ISO da API no fuso e formato locais do navegador. */
 function formatarData(dataIso: string): string {
   const data = new Date(dataIso)
 
   return Number.isNaN(data.getTime()) ? dataIso : formatadorData.format(data)
 }
 
+/**
+ * Apresenta os dados de um pedido e somente as ações permitidas no estado atual.
+ * useId gera IDs únicos para conectar títulos e regiões via atributos ARIA.
+ */
 export function CartaoPedido({
   pedido,
   atualizando,
